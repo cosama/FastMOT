@@ -144,6 +144,13 @@ class MultiTracker:
         confirmed = [trk_id for trk_id, track in self.tracks.items() if track.confirmed]
         unconfirmed = [trk_id for trk_id, track in self.tracks.items() if not track.confirmed]
 
+        # clean up current detection ids
+        for t in self.tracks.values():
+            t.det_ids.clear()
+        for t in self.lost.values():
+            t.det_ids.clear()
+
+
         # association with motion and embeddings
         cost = self._matching_cost(confirmed, detections, embeddings)
         matches1, u_trk_ids1, u_det_ids = self._linear_assignment(cost, confirmed, det_ids)
@@ -182,6 +189,7 @@ class MultiTracker:
             track.tlbr = next_tlbr
             track.update_feature(embeddings[det_id])
             track.age = 0
+            track.det_ids.append(det_id)
             if not track.confirmed:
                 track.confirmed = True
                 LOGGER.info('Found: %s', track)
@@ -198,6 +206,7 @@ class MultiTracker:
             LOGGER.info('Re-identified: %s', track)
             track.reactivate(frame_id, det.tlbr, embeddings[det_id])
             track.state = self.kf.initiate(det.tlbr)
+            track.det_ids.append(det_id)
             self.tracks[trk_id] = track
             del self.lost[trk_id]
             updated.append(trk_id)
@@ -221,6 +230,7 @@ class MultiTracker:
             det = detections[det_id]
             new_track = Track(frame_id, self.next_id, det.tlbr, det.label)
             new_track.state = self.kf.initiate(det.tlbr)
+            new_track.det_ids.append(det_id)
             self.tracks[self.next_id] = new_track
             LOGGER.debug('Detected: %s', new_track)
             updated.append(self.next_id)

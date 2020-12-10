@@ -22,6 +22,7 @@ class InferenceBackend:
     trt.init_libnvinfer_plugins(TRT_LOGGER, '')
 
     def __init__(self, model, batch_size):
+        self.cfx = cuda.Device(0).make_context()
         self.model = model
         self.batch_size = batch_size
         self.runtime = trt.Runtime(InferenceBackend.TRT_LOGGER)
@@ -75,6 +76,7 @@ class InferenceBackend:
         return self.synchronize()
 
     def infer_async(self):
+        self.cfx.push()
         cuda.memcpy_htod_async(self.input.device, self.input.host, self.stream)
         if self.engine.has_implicit_batch_dimension:
             self.context.execute_async(batch_size=self.batch_size, bindings=self.bindings,
@@ -83,6 +85,7 @@ class InferenceBackend:
             self.context.execute_async_v2(bindings=self.bindings, stream_handle=self.stream.handle)
         for out in self.outputs:
             cuda.memcpy_dtoh_async(out.host, out.device, self.stream)
+        self.cfx.pop()
 
     def synchronize(self):
         self.stream.synchronize()

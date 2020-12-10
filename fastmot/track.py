@@ -10,6 +10,7 @@ class Track:
         self.trk_id = trk_id
         self.tlbr = tlbr
         self.label = label
+        self.det_ids = []
 
         self.alpha = 0.9
         self.age = 0
